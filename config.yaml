@@ -1,0 +1,9 @@
+training:
+  seed: 0
+  batch_size: 32
+  train_percentage: 0.8
+  learning_rate: 0.001
+
+paths:
+  image_dir: ""
+  mask_dir: ""

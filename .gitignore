@@ -1,0 +1,8 @@
+*
+*/
+!.gitignore
+!config.py
+!config.yaml
+!download.sh
+!flake.nix
+!SkinLesionLoader.py

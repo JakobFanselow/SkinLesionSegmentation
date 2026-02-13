@@ -22,6 +22,7 @@
             buildInputs = with pkgs; [
               stdenv
               python3
+              kaggle
             ];
             nativeBuildInputs = with pkgs; [
               libgcc
