@@ -7,3 +7,9 @@ training:
 paths:
   image_dir: ""
   mask_dir: ""
+
+images:
+  resolution: 512
+
+loader:
+  workers: 12

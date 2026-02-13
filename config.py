@@ -19,5 +19,14 @@ class ConfigLoader:
     def traing_percentage(self):
         return self.config["training"]["train_percentage"]
 
+    def batch_size(self):
+        return self.config["training"]["batch_size"]
+
+    def resolution(self):
+        return self.config["images"]["resolution"]
+
+    def num_load_workers(self):
+        return self.config["loader"]["workers"]
+
 if __name__ == "__main__":
     print(load_config("config.yaml")["training"]["batch_size"])
