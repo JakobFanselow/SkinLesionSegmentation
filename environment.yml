@@ -1,6 +1,7 @@
 name: image_segmentation
 channels:
   - defaults
+  - conda-forge
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
 dependencies:
