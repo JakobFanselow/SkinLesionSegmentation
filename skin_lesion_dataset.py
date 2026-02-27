@@ -1,18 +1,25 @@
-import os
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import v2
 from pathlib import Path
 import torch
+from config import ConfigLoader
+
+
+
+from config import ConfigLoader
 
 class SkinLesionDataset(Dataset):
     
-    def __init__(self, image_dir, mask_dir, transform=None):
+    config = ConfigLoader("config.yaml")
+
+    def __init__(self, image_dir, mask_dir, transform=None, resolution=config.resolution()):
         self.image_dir = Path(image_dir)
         self.mask_dir = Path(mask_dir)
+        self.res = resolution
 
         self.transform = transform or v2.Compose([
-            v2.Resize((512, 512)),
+            v2.Resize((self.res, self.res)),
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True)
         ])

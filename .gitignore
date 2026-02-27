@@ -13,4 +13,10 @@ Thumbs.db
 .env
 venv/
 env/
-.python-version
+.python-version# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+sweep.py
+parallel_train.py
+models/

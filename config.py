@@ -8,25 +8,31 @@ class ConfigLoader:
     def __init__(self, config_path):
         self.config = load_config(config_path)
     
-    def traing_percentage(self):
+    def train_percentage(self) -> float:
         return self.config["training"]["train_percentage"]
 
-    def batch_size(self):
+    def test_percentage(self) -> float:
+        return self.config["training"]["test_percentage"]
+
+    def validation_percentage(self) -> float:
+        return self.config["training"]["validation_percentage"]
+
+    def batch_size(self) -> int:
         return self.config["training"]["batch_size"]
 
-    def resolution(self):
+    def resolution(self) -> int:
         return self.config["images"]["resolution"]
 
-    def num_load_workers(self):
+    def num_load_workers(self) -> int:
         return self.config["loader"]["workers"]
 
-    def learning_rate(self):
+    def learning_rate(self) -> float:
         return float(self.config["training"]["learning_rate"])
 
-    def epochs(self):
+    def epochs(self) -> int:
         return self.config["training"]["epochs"]
 
-    def manual_seed(self):
+    def manual_seed(self) -> int:
         return self.config["training"]["seed"]
 
 if __name__ == "__main__":
