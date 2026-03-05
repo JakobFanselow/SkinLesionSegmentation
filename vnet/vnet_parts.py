@@ -3,16 +3,25 @@ import torch.nn as nn
 
 
 class InputConvolution(nn.Module):
-    def __init__(self, out_channels=16):
+    def __init__(self, in_channels=3,out_channels=16):
         super(InputConvolution, self).__init__()
-        self.conv = nn.Conv2d(1, out_channels, kernel_size=5, padding=2)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=5, padding=2)
         self.prelu = nn.PReLU(out_channels)
 
     def forward(self, x):
         out = self.conv(x) 
-        x_repeat = x.expand(-1, out.shape[1], -1, -1)
+        return self.prelu(out)
 
-        return self.prelu(out + x_repeat)
+class FeatureFusionBlock(nn.Module):
+    def __init__(self, in_channels_sum,out_channels):
+        super(FeatureFusionBlock,self).__init__()
+        self.conv = nn.Conv2d(in_channels_sum,out_channels,kernel_size=5,padding=2)
+        self.prelu = nn.PReLU(out_channels)
+    
+    def forward(self, x_fine_grained, x_upsampled):
+        X = torch.cat((x_fine_grained, x_upsampled), dim=1)
+        return self.prelu(self.conv(X))
+
 
 class ResidualConvolution(nn.Module):
     def __init__(self, num_layers, num_channels):

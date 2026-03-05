@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from vnet_parts import *
+from vnet.vnet_parts import *
 
 class VNet2D(nn.Module):
     
@@ -21,18 +21,22 @@ class VNet2D(nn.Module):
         self.bottleneck = ResidualConvolution(3, 256)
 
         self.up_1 = UpConvolution(256, 256)
+        self.ff_1 = FeatureFusionBlock(384,256)
         self.u_rs_1 = StackedConvolution(3, 256)
         self.p_relu_1 = nn.PReLU(256)
 
         self.up_2 = UpConvolution(256, 128)
+        self.ff_2 = FeatureFusionBlock(192,128)
         self.u_rs_2 = StackedConvolution(3, 128)
         self.p_relu_2 = nn.PReLU(128)
 
         self.up_3 = UpConvolution(128, 64)
+        self.ff_3 = FeatureFusionBlock(96,64)
         self.u_rs_3 = StackedConvolution(2, 64)
         self.p_relu_3 = nn.PReLU(64)
 
         self.up_4 = UpConvolution(64, 32)
+        self.ff_4 = FeatureFusionBlock(48,32)
         self.u_rs_4 = StackedConvolution(1, 32)
         self.p_relu_4 = nn.PReLU(32)
 
@@ -63,20 +67,24 @@ class VNet2D(nn.Module):
         
 
         out_u1 = self.up_1(out_b)
-        out_256_u = self.u_rs_1(out_u1 + out_256)
+        ff_256 = self.ff_1(out_128,out_u1)
+        out_256_u = self.u_rs_1(ff_256)
         out_256_prelu = self.p_relu_1(out_256_u + out_u1)
         
         out_u2 = self.up_2(out_256_prelu)
-        out_128_u = self.u_rs_2(out_u2 + out_128)
+        ff_128 = self.ff_2(out_64,out_u2)
+        out_128_u = self.u_rs_2(ff_128)
         out_128_prelu = self.p_relu_2(out_128_u + out_u2)
 
         
         out_u3 = self.up_3(out_128_prelu)
-        out_64_u = self.u_rs_3(out_u3 + out_64)
+        ff_64 = self.ff_3(out_32,out_u3)
+        out_64_u = self.u_rs_3(ff_64)
         out_64_prelu = self.p_relu_3(out_64_u + out_u3)
         
         out_u4 = self.up_4(out_64_prelu)
-        out_32_u = self.u_rs_4(out_u4 + out_32)
+        ff_32 = self.ff_4(out_16,out_u4)
+        out_32_u = self.u_rs_4(ff_32)
         out_32_prelu = self.p_relu_4(out_32_u + out_u4)
 
         
