@@ -4,8 +4,16 @@ training:
   train_percentage: 0.7
   validation_percentage: 0.15
   test_percentage: 0.15
-  learning_rate: 3e-4
+  learning_rate: 1e-5
   epochs: 20
+  weight_decay: 0.0001
+  max_learning_rate: 5e-5
+  drop_last: true
+  max_norm: 5.0
+
+loss:
+  dice_weight: 0.5
+  bce_weight: 0.5
 
 paths:
   image_dir: ""

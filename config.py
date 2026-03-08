@@ -26,6 +26,9 @@ class ConfigLoader:
     def num_load_workers(self) -> int:
         return self.config["loader"]["workers"]
 
+    def max_learning_rate(self) -> float:
+        return float(self.config["training"]["max_learning_rate"])
+
     def learning_rate(self) -> float:
         return float(self.config["training"]["learning_rate"])
 
@@ -34,6 +37,21 @@ class ConfigLoader:
 
     def manual_seed(self) -> int:
         return self.config["training"]["seed"]
+
+    def weight_decay(self) -> float:
+        return self.config["training"]["weight_decay"]
+
+    def drop_last(self) -> bool:
+        return self.config["training"]["drop_last"]
+
+    def max_norm(self) -> float:
+        return self.config["training"]["max_norm"]
+    
+    def dice_weight(self) -> float:
+        return self.config["loss"]["dice_weight"]
+    
+    def bce_weight(self) -> float:
+        return self.config["loss"]["bce_weight"]
 
 if __name__ == "__main__":
     print(load_config("config.yaml")["training"]["batch_size"])
