@@ -5,53 +5,61 @@ def load_config(config_file_path):
         return yaml.safe_load(config)
 
 class ConfigLoader:
-    def __init__(self, config_path):
-        self.config = load_config(config_path)
-    
+    def __init__(self, wandb_config):
+        self.config = wandb_config
+
+    def _get_val(self, category, key):
+        if key in self.config:
+            return self.config[key]
+        return self.config[category][key]
+
+    def model(self) -> str:
+        return str(self._get_val("model", "model"))
+     
     def train_percentage(self) -> float:
-        return self.config["training"]["train_percentage"]
+        return float(self._get_val("training", "train_percentage"))
 
     def test_percentage(self) -> float:
-        return self.config["training"]["test_percentage"]
+        return float(self._get_val("training", "test_percentage"))
 
     def validation_percentage(self) -> float:
-        return self.config["training"]["validation_percentage"]
+        return float(self._get_val("training", "validation_percentage"))
 
     def batch_size(self) -> int:
-        return self.config["training"]["batch_size"]
+        return int(self._get_val("training", "batch_size"))
 
     def resolution(self) -> int:
-        return self.config["images"]["resolution"]
+        return int(self._get_val("images", "resolution"))
 
     def num_load_workers(self) -> int:
-        return self.config["loader"]["workers"]
+        return int(self._get_val("loader", "workers"))
 
     def max_learning_rate(self) -> float:
-        return float(self.config["training"]["max_learning_rate"])
+        return float(self._get_val("training", "max_learning_rate"))
 
     def learning_rate(self) -> float:
-        return float(self.config["training"]["learning_rate"])
+        return float(self._get_val("training", "learning_rate"))
 
     def epochs(self) -> int:
-        return self.config["training"]["epochs"]
+        return int(self._get_val("training", "epochs"))
 
     def manual_seed(self) -> int:
-        return self.config["training"]["seed"]
+        return int(self._get_val("training", "seed"))
 
     def weight_decay(self) -> float:
-        return self.config["training"]["weight_decay"]
+        return float(self._get_val("training", "weight_decay"))
 
     def drop_last(self) -> bool:
-        return self.config["training"]["drop_last"]
+        return bool(self._get_val("training", "drop_last"))
 
     def max_norm(self) -> float:
-        return self.config["training"]["max_norm"]
+        return float(self._get_val("training", "max_norm"))
     
     def dice_weight(self) -> float:
-        return self.config["loss"]["dice_weight"]
+        return float(self._get_val("loss", "dice_weight"))
     
     def bce_weight(self) -> float:
-        return self.config["loss"]["bce_weight"]
+        return 1 - float(self._get_val("loss", "dice_weight"))
 
 if __name__ == "__main__":
     print(load_config("config.yaml")["training"]["batch_size"])
