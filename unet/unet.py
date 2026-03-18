@@ -1,39 +1,59 @@
 import torch
 import torch.nn as nn
 
-from unet.unet_parts import DoubleConv, DownSample, UpSample, AttentionGate, ResidualBlock
+from unet.unet_parts import DoubleConv, DownSample, UpSample, AttentionGate, ResidualBlock, RecConvBlock, R2ConvBlock
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels=3, out_channels=1, init_filters=64, depth=4, activation='relu', bottle_neck=True, kernel_size=3):
         super().__init__()
-        self.dc_1 = DownSample(in_channels, 64)
-        self.dc_2 = DownSample(64, 128)
-        self.dc_3 = DownSample(128, 256)
-        self.dc_4 = DownSample(256, 512)
-
-        self.bottle_neck = DoubleConv(512, 1024)
-
-        self.uc_1 = UpSample(1024, 512)
-        self.uc_2 = UpSample(512, 256)
-        self.uc_3 = UpSample(256, 128)
-        self.uc_4 = UpSample(128, 64)
-
-        self.out = nn.Conv2d(in_channels=64, out_channels=out_channels, kernel_size=1)
+        
+        self.init_filters = init_filters
+        self.depth = depth
+        self.activation = activation
+        self.use_bottleneck = bottle_neck
+        self.kernel_size = kernel_size
+        
+        fn_args = {
+            "kernel_size": self.kernel_size, 
+            "activation": self.activation
+        }
+        
+        self.encoder = nn.ModuleList()
+        in_ch = in_channels
+        out_ch = init_filters
+        for _ in range(depth):
+            self.encoder.append(DownSample(in_ch, out_ch, **fn_args))
+            in_ch = out_ch
+            out_ch *= 2
+        if self.use_bottleneck:
+            self.bottleneck = DoubleConv(in_ch, in_ch * 2, **fn_args)
+            decode_ch = in_ch * 2
+        else:
+            self.bottleneck = nn.Identity()
+            decode_ch = in_ch
+        
+        self.decoder = nn.ModuleList()
+        in_ch = decode_ch
+        for level in reversed(range(depth)):
+            skip_ch = init_filters * (2 ** level)
+            self.decoder.append(UpSample(in_ch, skip_ch, **fn_args))
+            in_ch = skip_ch
+        
+        self.out = nn.Conv2d(in_channels=init_filters, out_channels=out_channels, kernel_size=1)
 
     def forward(self, x):
-        d1, p1 = self.dc_1(x)
-        d2, p2 = self.dc_2(p1)
-        d3, p3 = self.dc_3(p2)
-        d4, p4 = self.dc_4(p3)
-
-        bn = self.bottle_neck(p4)
-
-        u1 = self.uc_1(bn, d4)
-        u2 = self.uc_2(u1, d3)
-        u3 = self.uc_3(u2, d2)
-        u4 = self.uc_4(u3, d1)
-
-        return self.out(u4)
+        skips = []
+        p = x
+        for down in self.encoder:
+            d, p = down(p)
+            skips.append(d)
+        
+        x = self.bottleneck(p)
+        
+        for up, skip in zip(self.decoder, reversed(skips)):
+            x = up(x, skip)
+        
+        return self.out(x)
 
 class AttentionUNet(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -142,3 +162,101 @@ class ResUNet(nn.Module):
         d4 = self.dec4(u4)
 
         return self.out(d4)
+
+class RecUNet(nn.Module):
+    def __init__(self, in_channels=1, out_channels=1, t=2):
+        super().__init__()
+        
+        self.enc1 = RecConvBlock(in_channels, 64, t=t)
+        self.enc2 = RecConvBlock(64, 128, t=t)
+        self.enc3 = RecConvBlock(128, 256, t=t)
+        self.enc4 = RecConvBlock(256, 512, t=t)
+        
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        
+        self.bottleneck = RecConvBlock(512, 1024, t=t)
+        
+        self.up4 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
+        self.dec4 = RecConvBlock(1024, 512, t=t)
+        
+        self.up3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.dec3 = RecConvBlock(512, 256, t=t)
+        
+        self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.dec2 = RecConvBlock(256, 128, t=t)
+        
+        self.up1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.dec1 = RecConvBlock(128, 64, t=t)
+        
+        self.out_conv = nn.Conv2d(64, out_channels, kernel_size=1)
+
+    def forward(self, x):
+        e1 = self.enc1(x)
+        e2 = self.enc2(self.pool(e1))
+        e3 = self.enc3(self.pool(e2))
+        e4 = self.enc4(self.pool(e3))
+        
+        bn = self.bottleneck(self.pool(e4))
+        
+        d4 = self.up4(bn)
+        d4 = self.dec4(torch.cat((e4, d4), dim=1))
+        
+        d3 = self.up3(d4)
+        d3 = self.dec3(torch.cat((e3, d3), dim=1))
+        
+        d2 = self.up2(d3)
+        d2 = self.dec2(torch.cat((e2, d2), dim=1))
+        
+        d1 = self.up1(d2)
+        d1 = self.dec1(torch.cat((e1, d1), dim=1))
+        
+        return self.out_conv(d1)
+    
+class R2UNet(nn.Module):
+    def __init__(self, in_channels=1, out_channels=1, t=2):
+        super().__init__()
+        
+        self.enc1 = R2ConvBlock(in_channels, 64, t=t)
+        self.enc2 = R2ConvBlock(64, 128, t=t)
+        self.enc3 = R2ConvBlock(128, 256, t=t)
+        self.enc4 = R2ConvBlock(256, 512, t=t)
+        
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        
+        self.bottleneck = R2ConvBlock(512, 1024, t=t)
+        
+        self.up4 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
+        self.dec4 = R2ConvBlock(1024, 512, t=t)
+        
+        self.up3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.dec3 = R2ConvBlock(512, 256, t=t)
+        
+        self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.dec2 = R2ConvBlock(256, 128, t=t)
+        
+        self.up1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.dec1 = R2ConvBlock(128, 64, t=t)
+        
+        self.out_conv = nn.Conv2d(64, out_channels, kernel_size=1)
+
+    def forward(self, x):
+        e1 = self.enc1(x)
+        e2 = self.enc2(self.pool(e1))
+        e3 = self.enc3(self.pool(e2))
+        e4 = self.enc4(self.pool(e3))
+        
+        bn = self.bottleneck(self.pool(e4))
+        
+        d4 = self.up4(bn)
+        d4 = self.dec4(torch.cat((e4, d4), dim=1))
+        
+        d3 = self.up3(d4)
+        d3 = self.dec3(torch.cat((e3, d3), dim=1))
+        
+        d2 = self.up2(d3)
+        d2 = self.dec2(torch.cat((e2, d2), dim=1))
+        
+        d1 = self.up1(d2)
+        d1 = self.dec1(torch.cat((e1, d1), dim=1))
+        
+        return self.out_conv(d1) 

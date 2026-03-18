@@ -20,3 +20,5 @@ env/
 sweep.py
 parallel_train.py
 models/
+
+debugging/
