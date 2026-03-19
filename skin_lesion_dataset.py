@@ -10,10 +10,8 @@ from config import ConfigLoader
 from config import ConfigLoader
 
 class SkinLesionDataset(Dataset):
-    
-    config = ConfigLoader("config.yaml")
 
-    def __init__(self, image_dir, mask_dir, transform=None, resolution=config.resolution()):
+    def __init__(self, image_dir, mask_dir, resolution, transform=None):
         self.image_dir = Path(image_dir)
         self.mask_dir = Path(mask_dir)
         self.res = resolution

@@ -1,0 +1,22 @@
+model: "AUNET"
+
+seed: 42
+batch_size: 16
+train_percentage: 0.7
+validation_percentage: 0.15
+test_percentage: 0.15
+learning_rate: 1e-5
+epochs: 20
+weight_decay: 0.004
+max_learning_rate: 5e-5
+drop_last: true
+max_norm: 5.0
+
+dice_weight: 0.5
+
+image_dir: ""
+mask_dir: ""
+
+resolution: 512
+
+workers: 8
