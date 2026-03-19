@@ -57,6 +57,9 @@ def train() -> None:
         VAL_PERC = config.validation_percentage()
         TRAIN_PERC = config.train_percentage()
 
+        KERNEL_SIZE = config.kernel_size()
+        UNET_EXCLUDE_BOTTLENECK = config.exclude_bottleneck()
+
         RES = config.resolution()
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -96,13 +99,13 @@ def train() -> None:
 
         match MODEL:
             case "UNET":
-                model = UNet(in_channels=3, out_channels=1).to(device)
+                model = UNet(in_channels=3, out_channels=1, exclude_bottleneck=UNET_EXCLUDE_BOTTLENECK, conv_kernel_size=KERNEL_SIZE).to(device)
             case "AUNET":
                 model = AttentionUNet(in_channels=3, out_channels=1).to(device)
             case "RESNET":
                 model = ResUNet(in_channels=3, out_channels=1).to(device)
             case "VNET":
-                model = VNet2D().to(device)
+                model = VNet2D(kernel_size=KERNEL_SIZE).to(device)
             case _:
                 print("No correct model name provided. Using UNet as fallback.")
                 model = UNet(in_channels=3, out_channels=1).to(device)

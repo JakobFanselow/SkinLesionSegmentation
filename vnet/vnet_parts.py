@@ -3,9 +3,10 @@ import torch.nn as nn
 
 
 class InputConvolution(nn.Module):
-    def __init__(self, in_channels=3,out_channels=16):
+    def __init__(self, in_channels=3,out_channels=16,kernel_size=5):
         super(InputConvolution, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=5, padding=2)
+        padding = int((kernel_size-1)/2)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding)
         self.prelu = nn.PReLU(out_channels)
 
     def forward(self, x):
@@ -13,9 +14,10 @@ class InputConvolution(nn.Module):
         return self.prelu(out)
 
 class FeatureFusionBlock(nn.Module):
-    def __init__(self, in_channels_sum,out_channels):
+    def __init__(self, in_channels_sum,out_channels,kernel_size=5):
         super(FeatureFusionBlock,self).__init__()
-        self.conv = nn.Conv2d(in_channels_sum,out_channels,kernel_size=5,padding=2)
+        padding = int((kernel_size-1)/2)
+        self.conv = nn.Conv2d(in_channels_sum,out_channels,kernel_size=kernel_size,padding=padding)
         self.prelu = nn.PReLU(out_channels)
     
     def forward(self, x_fine_grained, x_upsampled):
@@ -24,13 +26,13 @@ class FeatureFusionBlock(nn.Module):
 
 
 class ResidualConvolution(nn.Module):
-    def __init__(self, num_layers, num_channels):
+    def __init__(self, num_layers, num_channels,kernel_size=5):
         super(ResidualConvolution, self).__init__()
-
+        padding = int((kernel_size-1)/2)
 
         layers = []
         for _ in range(num_layers):
-            layers.append(nn.Conv2d(num_channels, num_channels, kernel_size=5, padding=2))
+            layers.append(nn.Conv2d(num_channels, num_channels, kernel_size=kernel_size, padding=padding))
             layers.append(nn.PReLU(num_channels))
         self.net = nn.Sequential(
             *layers
@@ -44,13 +46,13 @@ class ResidualConvolution(nn.Module):
         return self.final_prelu(conv_out + x)
 
 class StackedConvolution(nn.Module):
-    def __init__(self, num_layers, num_channels):
+    def __init__(self, num_layers, num_channels,kernel_size=5):
         super(StackedConvolution, self).__init__()
-
+        padding = int((kernel_size-1)/2)
 
         layers = []
         for _ in range(num_layers):
-            layers.append(nn.Conv2d(num_channels, num_channels, kernel_size=5, padding=2))
+            layers.append(nn.Conv2d(num_channels, num_channels, kernel_size=kernel_size, padding=padding))
             layers.append(nn.PReLU(num_channels))
         self.net = nn.Sequential(
             *layers

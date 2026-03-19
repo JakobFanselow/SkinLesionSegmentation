@@ -1,0 +1,36 @@
+program: train.py
+method: bayes 
+metric:
+  name: val_loss
+  goal: minimize
+
+early_terminate:
+  type: hyperband
+  min_iter: 6
+  eta: 2
+
+parameters:
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-6
+    max: 1e-3
+  max_learning_rate: 
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-2
+  max_norm:
+    values: [0.1,0.25,0.5,1.0, 2.0]
+  batch_size:
+    values: [2,4, 8, 16]
+  model:
+    values: ["VNET"]
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1e-8
+    max: 0.5
+  kernel_size:
+    values: [3,5,7,9]
+  epochs: 
+    distribution: int_uniform
+    min: 15
+    max: 40
