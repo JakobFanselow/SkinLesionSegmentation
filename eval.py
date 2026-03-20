@@ -15,6 +15,7 @@ from skin_lesion_dataset import SkinLesionDataset
 from config import ConfigLoader
 from vnet.vnet import VNet2D
 from dice_bce_loss import DiceBCELoss
+from dice_loss import DiceLoss
 
 def identity(x):
     return x
@@ -110,24 +111,26 @@ def calc_test_loss(run_id) -> None:
 
     # criterion = nn.BCEWithLogitsLoss()
     criterion = DiceBCELoss(dice_weight=DICE_WEIGHT, bce_weight=BCE_WEIGHT)
-
+    dice_loss =  DiceLoss()
 
 
     model.eval()
     test_running_loss = 0.0
+    test_running_dice_coefficient = 0.0
     with torch.no_grad():
         for img, mask in test_dataloader:
             img, mask = img.to(device), mask.to(device)
             y_pred = model(img)
             test_running_loss += criterion(y_pred, mask).item()
+            test_running_dice_coefficient += dice_loss(y_pred,mask).item()
 
     test_loss = test_running_loss / len(test_dataloader)
-    return test_loss
-
-       
+    dice_coefficient = 1- test_running_dice_coefficient / len(test_dataloader)
+    return test_loss, dice_coefficient
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         run_id_arg = sys.argv[1]
-        print(calc_test_loss(run_id_arg))
+        test_loss, dice_coefficient = calc_test_loss(run_id_arg)
+        print(f"Test loss: {test_loss} \nDice coefficient: {dice_coefficient}")

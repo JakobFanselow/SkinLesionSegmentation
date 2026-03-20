@@ -98,9 +98,53 @@ DeepLabV3 departs from the classical encoder–decoder structure and instead foc
 
 In contrast to U-Net and V-Net, DeepLabV3 does not rely on symmetric skip connections for precise localization. Instead, it emphasizes global context, which can be advantageous when segmenting objects with large variability in size and appearance. However, the lack of strong low-level feature fusion may result in less precise boundaries, particularly in medical images where fine details are critical.
 
+== Sweeps <Sweeps>
+
 
 = Evaluation
 // Which evaluation strategy and metrics have you chosen? How does your model perform?
+== Strategy and Metric
+We evaluated two state-of-the-art segmentation models.
+The models were trained using the hybrid loss function Dice-BCE Loss which combines spacial overlap benefits of the Dice coefficient with strong pixel-wise classification of Binary Cross-Entropy
+To ensure the architectural and model hyperparameter comparison remained the main focus, we applied an equal weighting to both components: 
+$ L_"total" = 0.5 \cdot L_"Dice" + 0.5 \cdot L_"BCE" $
+
+This provides a standardized baseline, allowing for an evaluation of architecture and model hyperparameters.
+
+For hyperparameter choice see @Sweeps Sweeps.
+
+== Quantitative Results
+Using the best parameters found in our sweeps we were able to achieve the following results:
+#figure(
+  table(
+    columns: (1fr, 1fr, 1fr, 1fr, 1fr),
+    inset: 10pt,
+    align: center + horizon,
+    stroke: none,
+    table.hline(),
+    [*Model*], [*Train loss*], [*Validation Loss*], [*Test Loss*], [*Dice coefficient*],
+    table.hline(stroke: .5pt),
+    
+    [UNet], [0.11005], [0.14995], [0.15901], [0.85149],
+    [VNet], [0.12168], [0.15772], [0.16998], [0.85109],
+    
+    table.hline(),
+  ),
+  caption: [Performance comparison of UNet and VNet using Dice-BCE loss.],
+)
+
+While UNet was able to achieve a 6.453% lower loss than VNet, their dice coefficients are nearly identical, from which follows that the lower loss of VNet is solely caused by UNet performing better in terms of BCE loss.
+(Expand on UNet not beating VNet in Dice)
+
+To visualize the difference, we randomly selected four random samples from the test set for qualitative review.
+#image("../results/1.png")
+#image("../results/2.png")
+#image("../results/3.png")
+#image("../results/4.png")
+
+The visual evidence supports our quantitative findings. While both are able to successfully identify the lesions, VNet exhibits higher "uncertainty". This manifests in faint activations in areas with healthy skin. This is reflected in UNet outperforming VNet in terms of BCE loss.
+
+
 
 = Discussion
 // Is your model performing well? How could your model be improved? Which challenges were involved? What is future work?
