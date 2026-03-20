@@ -2,7 +2,10 @@ This project implements and bechnmarks two state-of-the-art models for image seg
 
 Detailed results and instructions to replicate our results can be found in our [demonstration notebook](demo.ipynb).
 
+To run the notebook install ✨ `pixi` ✨ package via conda. Next run `pixi shell`.
+
 Our UNet implementation is located [here](unet/unet.py) and our V-Net adaption can be found [here](vnet/vnet.py).
+The final report can be found [here](neurips-2025/main.pdf)
 
 
 *Dataset*

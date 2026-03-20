@@ -52,7 +52,7 @@ Despite significant advances in deep learning, skin lesion segmentation remains 
 
 = Related Work
 // Have others approached what you did? Which works are related to yours?
-Lots of research has explored use cases of deep learning for skin lesion segmentation, with focus on encoder–decoder architectures. U-Net was one of the most widely adopted encoder-decoder architectures in medical image segmentation due to its ability to capture both local and global context through the introduction of skip connections @ronneberger2015unetconvolutionalnetworksbiomedical. Many studies demonstrated its strong performance on dermoscopic datasets, including ISIC challenges, such as ISIC 2018, often serving as a baseline for comparison @codella2019skinlesionanalysismelanoma.
+Lots of research has explored use cases of deep learning for skin lesion segmentation, with focus on encoder–decoder architectures. U-Net was one of the most widely adopted encoder-decoder architectures in medical image segmentation due to its ability to capture both local and global context through the introduction of skip connections @unet. Many studies demonstrated its strong performance on dermoscopic datasets, including ISIC challenges, such as ISIC 2018, often serving as a baseline for comparison @codella2019skinlesionanalysismelanoma.
 
 V-Net, which was originally proposed for volumetric medical image segmentation, extends the encoder–decoder paradigm by incorporating residual connections and volumetric convolutions @milletari2016vnetfullyconvolutionalneural. While primarily designed for 3D data, variants of V-Net have also been applied to 2D medical imaging tasks, including skin lesion segmentation, showing competitive performance in handling complex structures and class imbalance @Hashemi_2019.
 
@@ -149,7 +149,7 @@ To ensure we are comparing the optimal versions of our models we used wandb swee
 To avoid asymetry issues we refrained from using even kernel sizes.
 Additionally in our UNet sweep, we also experimented with removing the bottleneck connection.
 The ranges which the sweep explored are:
-#table(
+#figure(table(
   columns: (auto, 1fr, 1fr),
   inset: 10pt,
   align: horizon,
@@ -162,7 +162,7 @@ The ranges which the sweep explored are:
   [weight_decay], [log_uniform_values], [$1e-8$ to $0.5$],
   [kernel_size], [categorical], [3, 5, 7, 9],
   [epochs], [int_uniform], [15 to 40],
-)
+), caption: [Metrics of Sweep Parameters])<fig4>
 
 
 = Evaluation
@@ -201,10 +201,14 @@ While UNet was able to achieve a 6.453% lower loss than VNet, their dice coeffic
 (Expand on UNet not beating VNet in Dice)
 
 To visualize the difference, we randomly selected four random samples from the test set for qualitative review.
-#image("../results/1.png")
-#image("../results/2.png")
-#image("../results/3.png")
-#image("../results/4.png")
+#figure(
+  [#image("../results/1.png")
+  #image("../results/2.png")
+  #image("../results/3.png")
+  #image("../results/4.png")],
+  caption: [Qualitative comparison of UNet and VNet segmentation results on four random test samples.]
+)
+
 
 The visual evidence supports our quantitative findings. While both are able to successfully identify the lesions, VNet exhibits higher "uncertainty". This manifests in faint activations in areas with healthy skin. This is reflected in UNet outperforming VNet in terms of BCE loss.
 
@@ -212,22 +216,29 @@ The visual evidence supports our quantitative findings. While both are able to s
 
 = Discussion
 // Is your model performing well? How could your model be improved? Which challenges were involved? What is future work?
-==
+== Training Stability and Gradient Clipping
 A notable divergence in training was observed in stability and gradient size. While UNet remained stable under standard conditions, VNet was only able to perform well with very restrictive gradient clipping. Comparing the max_norm of the two best runs UNet had relatively stable training using a value of 2.0 while VNet's loss curves exhibit large spikes even though its max_norm was only 0.25
 
-#image("../training_curves/TrainLoss.png")
-#image("../training_curves/ValLoss.png")
+#figure(
+  grid(
+    columns: 2,
+    image("../training_curves/TrainLoss.png"), image("../training_curves/ValLoss.png"), 
+  ), caption: [Comparison of VNet and UNet on train_loss and val_loss over epochs.]
+)<fig5>
 
-This restrictive max_norm resulted in a clipping of almost all of VNets gradients.
+#figure(
+  image("../training_curves/GradientClipping.png"),
+  caption: [Percentage of clipped gradients during training for UNet and VNet.]
+)<fig6>
 
-#image("../training_curves/GradientClipping.png")
- 
+This restrictive max_norm resulted in a clipping of almost all of VNets gradients. (see @fig6)
+
 The qualitative "uncertainty" may be a direct consequence of this restriction. Because of the low max_norm required to keep the training process stable, VNet was restricted in its ability to perform high-magnitude weight updates.
 Noteably it was also unable to take advantage of our learning rate scheduler as nearly all gradients were clipped to the same size.
 This likely prevented VNet from reaching the same level of confidence in pixel-wise classification (low BCE loss) as UNet.
 However it has to be noted that because the best UNet run had a lower max_lr than lr our training program used $1.5*"lr"$ as a fallback max_lr, limiting Unet's advantage.
 
-== 
+== Interpretation of Results
 Despite UNets superior BCE performance, the parity of dice coefficients suggests that both architectures are equally capable of capturing the primary structural morphology of the lesion.
 
 == Future work
