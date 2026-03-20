@@ -30,7 +30,11 @@ def rotate_270(x):
 
 def calc_test_loss(run_id) -> None:
     api = wandb.Api()
-    wandb_path = f"jakob-fanselow-hasso-plattner-institut/SkinLesionSegmentation/{run_id}"
+    settings = wandb.Settings()
+    project = settings.project or "SkinLesionSegmentation"
+    entity = settings.entity or wandb.Api().default_entity
+
+    wandb_path = f"{entity}/{project}/{Path(run_id).stem}"
     print(f"Wandb path: {wandb_path}")
     run = api.run(wandb_path)
 
