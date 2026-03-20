@@ -27,8 +27,8 @@ def rotate_180(x):
 def rotate_270(x):
     return F.rotate(x, 270)
 
-def train() -> None:
-    with open("flat_config.yaml", "r") as f:
+def train(config_name="flat_config.yaml") -> None:
+    with open(config_name, "r") as f:
         default_config = yaml.safe_load(f)
 
     with wandb.init(config=default_config) as run:
@@ -171,6 +171,8 @@ def train() -> None:
         
         save_path = f"models/{run.id}.pth"
         torch.save(model.state_dict(), save_path)
+
+        return save_path
 
 if __name__ == "__main__":
     train()

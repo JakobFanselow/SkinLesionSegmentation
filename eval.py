@@ -8,6 +8,7 @@ from pathlib import Path
 import wandb
 import yaml
 import sys
+import loader
 
 from unet.unet import UNet, AttentionUNet, ResUNet
 from skin_lesion_dataset import SkinLesionDataset
@@ -29,7 +30,11 @@ def rotate_270(x):
 
 def calc_test_loss(run_id) -> None:
     api = wandb.Api()
-    wandb_path = f"jakob-fanselow-hasso-plattner-institut/SkinLesionSegmentation/{run_id}"
+    settings = wandb.Settings()
+    project = settings.project or "SkinLesionSegmentation"
+    entity = settings.entity or wandb.Api().default_entity
+
+    wandb_path = f"{entity}/{project}/{Path(run_id).stem}"
     print(f"Wandb path: {wandb_path}")
     run = api.run(wandb_path)
 
@@ -68,37 +73,15 @@ def calc_test_loss(run_id) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(device)
 
-    dataset = SkinLesionDataset(
-        BASE_DIR / "isic2018-challenge-task1-data-segmentation" / "ISIC2018_Task1-2_Training_Input",
-        BASE_DIR / "isic2018-challenge-task1-data-segmentation" / "ISIC2018_Task1_Training_GroundTruth",
-        RES
-    )
-
-    generator = torch.Generator().manual_seed(SEED)
-    train_dataset, val_dataset, test_dataset = random_split(dataset=dataset, lengths=[TRAIN_PERC, VAL_PERC, TEST_PERC], generator=generator)
-
     loader_args = {
         "batch_size": BATCH_SIZE,
         "num_workers": NUM_WORKERS,
         "pin_memory": True
     }
 
-    train_transforms_90_multiples = transforms.Compose([
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomChoice([
-            transforms.Lambda(identity),
-            transforms.Lambda(rotate_90),
-            transforms.Lambda(rotate_180),
-            transforms.Lambda(rotate_270)
-        ]),
-        transforms.ToTensor()
-    ])
 
-    train_dataset.transform = train_transforms_90_multiples
 
-    train_dataloader = DataLoader(dataset=train_dataset, shuffle=True, **loader_args, drop_last=DROP_LAST)
-    val_dataloader = DataLoader(dataset=val_dataset, shuffle=False, **loader_args)
-    test_dataloader = DataLoader(dataset=test_dataset, shuffle=False, **loader_args)
+    _, test_dataloader = loader.get_test_dataset_wandb(wandb_path)
 
     match MODEL:
         case "UNET":
@@ -123,7 +106,7 @@ def calc_test_loss(run_id) -> None:
     if not model_path.exists():
         raise FileNotFoundError(f"Model weights not found at {model_path}")
 
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model = loader.load_model(wandb_path)
 
     # criterion = nn.BCEWithLogitsLoss()
     criterion = DiceBCELoss(dice_weight=DICE_WEIGHT, bce_weight=BCE_WEIGHT)
