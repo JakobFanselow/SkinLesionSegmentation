@@ -1,5 +1,5 @@
 model:
-  model: "AUNET"
+  model: "DEEPLABV3"
 
 training:
   seed: 42
