@@ -114,9 +114,9 @@ def train(config_name="flat_config.yaml") -> None:
         # model = AttentionUNet(in_channels=3, out_channels=1).to(device)
         # model = ResUNet(in_channels=3, out_channels=1).to(device)
         # model = VNet2D().to(device)
-        model = models.segmentation.deeplabv3_resnet50(weights="DEFAULT")
-        model.classifier = DeepLabHead(2048, 1)
-        model.to(device)
+        # model = models.segmentation.deeplabv3_resnet50(weights="DEFAULT")
+        # model.classifier = DeepLabHead(2048, 1)
+        # model.to(device)
 
 
         optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
@@ -137,7 +137,7 @@ def train(config_name="flat_config.yaml") -> None:
             for img, mask in tqdm(train_dataloader, desc=f"Epoch {epoch + 1}/{EPOCHS}"):
                 img, mask = img.to(device), mask.to(device)
                 optimizer.zero_grad()
-                y_pred = model(img)['out']
+                y_pred = model(img)
                 loss = criterion(y_pred, mask)
                 loss.backward()
                 old_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_NORM)      
@@ -157,7 +157,7 @@ def train(config_name="flat_config.yaml") -> None:
             with torch.no_grad():
                 for img, mask in val_dataloader:
                     img, mask = img.to(device), mask.to(device)
-                    y_pred = model(img)['out']
+                    y_pred = model(img)
                     val_running_loss += criterion(y_pred, mask).item()
 
             val_loss = val_running_loss / len(val_dataloader)

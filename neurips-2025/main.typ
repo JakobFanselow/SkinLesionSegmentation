@@ -129,14 +129,47 @@ Compared to U-Net, V-Net introduces residual learning within each resolution lev
 
 In the context of skin lesion segmentation, the 2D adaptation of V-Net benefits from improved feature reuse and potentially more stable training due to residual connections. However, the increased architectural complexity leads to higher computational cost, and the absence of true volumetric context might limit its advantages over simpler architectures like U-Net.
 
+== Optimization strategy
+To improve training we implemented the following training heuristics:
++ We utilized the AdamW which decouples weight decay from the gradient update, resulting in better generalization than Adam
++ The OneCycleLR learning rate scheduler which starts with a low but increasing learning rate until it hits a maximum after which the learning rate decays
++ To ensure training stability we implemented gradient clipping with a max_norm hyperparameter. This serves as a safety mechanism against "exploding gradients" by scaling down gradient that exceed the max_norm threshhold
++ Data augmentation: In medical imaging of skin lesions the orientation of an image or whether it is flipped or not doesn't matter. We randomly applied rotations by multiples of 90° and mirroring which effectively allowed us to increase our training data by a factor of 8.
+
 == Sweeps <Sweeps>
+To ensure we are comparing the optimal versions of our models we used wandb sweeps with the bayes method. The hyper parameters of which we explored variations are:
++ LR
++ max LR 
++ max norm
++ batch size
++ weight decay
++ size of the kernel used in convolutions (with padding added to ensure matching dimensions)
++ number of epochs
+
+To avoid asymetry issues we refrained from using even kernel sizes.
+Additionally in our UNet sweep, we also experimented with removing the bottleneck connection.
+The ranges which the sweep explored are:
+#table(
+  columns: (auto, 1fr, 1fr),
+  inset: 10pt,
+  align: horizon,
+  fill: (x, y) => if y == 0 { gray.lighten(80%) },
+  [*Parameter*], [*Distribution*], [*Min / Max / Values*],
+  [learning_rate], [log_uniform_values], [$1e-6$ to $1e-3$],
+  [max_learning_rate], [log_uniform_values], [$1e-5$ to $1e-2$],
+  [max_norm], [categorical], [0.1, 0.25, 0.5, 1.0, 2.0],
+  [batch_size], [categorical], [2, 4, 8, 16],
+  [weight_decay], [log_uniform_values], [$1e-8$ to $0.5$],
+  [kernel_size], [categorical], [3, 5, 7, 9],
+  [epochs], [int_uniform], [15 to 40],
+)
 
 
 = Evaluation
 // Which evaluation strategy and metrics have you chosen? How does your model perform?
 == Strategy and Metric
 We evaluated two state-of-the-art segmentation models.
-The models were trained using the hybrid loss function Dice-BCE Loss which combines spacial overlap benefits of the Dice coefficient with strong pixel-wise classification of Binary Cross-Entropy
+The models were trained using the hybrid loss function Dice-BCE Loss which combines spatial overlap benefits of the Dice coefficient with strong pixel-wise classification of Binary Cross-Entropy
 To ensure the architectural and model hyperparameter comparison remained the main focus, we applied an equal weighting to both components: 
 $ L_"total" = 0.5 dot L_"Dice" + 0.5 dot L_"BCE" $
 
@@ -156,8 +189,8 @@ Using the best parameters found in our sweeps we were able to achieve the follow
     [*Model*], [*Train loss*], [*Validation Loss*], [*Test Loss*], [*Dice coefficient*],
     table.hline(stroke: .5pt),
     
-    [UNet], [0.11005], [0.14995], [0.15901], [0.85149],
-    [VNet], [0.12168], [0.15772], [0.16998], [0.85109],
+    [UNet], [*0.11005*], [*0.14995*], [*0.15901*], [*0.85149*],
+    [VNet], [0.12168], [0.15772], [0.16998], [*0.85109*],
     
     table.hline(),
   ),
@@ -179,3 +212,28 @@ The visual evidence supports our quantitative findings. While both are able to s
 
 = Discussion
 // Is your model performing well? How could your model be improved? Which challenges were involved? What is future work?
+==
+A notable divergence in training was observed in stability and gradient size. While UNet remained stable under standard conditions, VNet was only able to perform well with very restrictive gradient clipping. Comparing the max_norm of the two best runs UNet had relatively stable training using a value of 2.0 while VNet's loss curves exhibit large spikes even though its max_norm was only 0.25
+
+#image("../training_curves/TrainLoss.png")
+#image("../training_curves/ValLoss.png")
+
+This restrictive max_norm resulted in a clipping of almost all of VNets gradients.
+
+#image("../training_curves/GradientClipping.png")
+ 
+The qualitative "uncertainty" may be a direct consequence of this restriction. Because of the low max_norm required to keep the training process stable, VNet was restricted in its ability to perform high-magnitude weight updates.
+Noteably it was also unable to take advantage of our learning rate scheduler as nearly all gradients were clipped to the same size.
+This likely prevented VNet from reaching the same level of confidence in pixel-wise classification (low BCE loss) as UNet.
+However it has to be noted that because the best UNet run had a lower max_lr than lr our training program used $1.5*"lr"$ as a fallback max_lr, limiting Unet's advantage.
+
+== 
+Despite UNets superior BCE performance, the parity of dice coefficients suggests that both architectures are equally capable of capturing the primary structural morphology of the lesion.
+
+== Future work
+=== Architectural Stabilization
+The instability in VNet's training characterized by large loss spikes and the neccecity for aggressive gradient clipping, remains a primary bottleneck. Future work should investigate the following techniques:
++ initialization besides random initialization such as He initialization
++ residual scaling
+=== Loss Function Optimization
+To address VNets poor BCE performance we propose implementing a scheduled loss weighting strategy that initially prioritizes Dice and later on BCE loss.
