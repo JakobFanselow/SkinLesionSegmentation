@@ -46,3 +46,56 @@ def show_random(wandb_path):
     
     plt.tight_layout()
     plt.show()
+
+def show_random_double(wandb_path_1, wandb_path_2):
+    test_dataset, _ = loader.get_test_dataset_wandb(wandb_path_1)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    model1 = loader.load_model(wandb_path_1)
+    model2 = loader.load_model(wandb_path_2)
+
+    model1.to(device)
+    model1.eval()
+    model2.to(device)
+    model2.eval()
+
+    random_index = random.randint(0, len(test_dataset) - 1)
+    image, ground_truth = test_dataset[random_index]
+
+
+
+    image_on_device = image.unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        prediction_on_device_1 = model1(image_on_device)
+        prediction_on_device_2 = model2(image_on_device)
+    
+
+    prediction_1 = prediction_on_device_1.squeeze().to("cpu")
+    prediction_2 = prediction_on_device_2.squeeze().to("cpu")
+    
+    img_np = image.permute(1, 2, 0).cpu().numpy()
+    mask_np = ground_truth.squeeze().cpu().numpy()
+    pred_1_np = prediction_1.squeeze().cpu().numpy()
+    pred_2_np = prediction_2.squeeze().cpu().numpy()
+
+    fig, ax = plt.subplots(1, 4, figsize=(15, 5))
+
+    ax[0].imshow(img_np)
+    ax[0].set_title(f"Original Image (Index: {random_index})")
+    ax[0].axis('off')
+    
+    ax[1].imshow(mask_np, cmap='gray')
+    ax[1].set_title("Ground Truth")
+    ax[1].axis('off')
+    
+    ax[2].imshow(pred_1_np, cmap='gray') 
+    ax[2].set_title("UNet Prediction")
+    ax[2].axis('off')
+
+    ax[3].imshow(pred_2_np, cmap='gray') 
+    ax[3].set_title("VNet Prediction")
+    ax[3].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
