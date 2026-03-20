@@ -130,7 +130,40 @@ Compared to U-Net, V-Net introduces residual learning within each resolution lev
 
 In the context of skin lesion segmentation, the 2D adaptation of V-Net benefits from improved feature reuse and potentially more stable training due to residual connections. However, the increased architectural complexity leads to higher computational cost, and the absence of true volumetric context might limit its advantages over simpler architectures like U-Net.
 
+== Optimization strategy
+To improve training we implemented the following training heuristics:
++ We utilized the AdamW which decouples weight decay from the gradient update, resulting in better generalization than Adam
++ The OneCycleLR learning rate scheduler which starts with a low but increasing learning rate until it hits a maximum after which the learning rate decays
++ To ensure training stability we implemented gradient clipping with a max_norm hyperparameter. This serves as a safety mechanism against "exploding gradients" by scaling down gradient that exceed the max_norm threshhold
++ Data augmentation: In medical imaging of skin lesions the orientation of an image or whether it is flipped or not doesn't matter. We randomly applied rotations by multiples of 90° and mirroring which effectively allowed us to increase our training data by a factor of 8.
+
 == Sweeps <Sweeps>
+To ensure we are comparing the optimal versions of our models we used wandb sweeps with the bayes method. The hyper parameters of which we explored variations are:
++ LR
++ max LR 
++ max norm
++ batch size
++ weight decay
++ size of the kernel used in convolutions (with padding added to ensure matching dimensions)
++ number of epochs
+
+To avoid asymetry issues we refrained from using even kernel sizes.
+Additionally in our UNet sweep, we also experimented with removing the bottleneck connection.
+The ranges which the sweep explored are:
+#table(
+  columns: (auto, 1fr, 1fr),
+  inset: 10pt,
+  align: horizon,
+  fill: (x, y) => if y == 0 { gray.lighten(80%) },
+  [*Parameter*], [*Distribution*], [*Min / Max / Values*],
+  [learning_rate], [log_uniform_values], [$1e-6$ to $1e-3$],
+  [max_learning_rate], [log_uniform_values], [$1e-5$ to $1e-2$],
+  [max_norm], [categorical], [0.1, 0.25, 0.5, 1.0, 2.0],
+  [batch_size], [categorical], [2, 4, 8, 16],
+  [weight_decay], [log_uniform_values], [$1e-8$ to $0.5$],
+  [kernel_size], [categorical], [3, 5, 7, 9],
+  [epochs], [int_uniform], [15 to 40],
+)
 
 
 = Evaluation
