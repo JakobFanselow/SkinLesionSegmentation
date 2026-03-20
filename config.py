@@ -61,5 +61,18 @@ class ConfigLoader:
     def bce_weight(self) -> float:
         return 1 - float(self._get_val("loss", "dice_weight"))
 
+    def kernel_size(self) -> float:
+        try:
+            return int(self._get_val("model","kernel_size"))
+        except:
+            return None
+
+    
+    def exclude_bottleneck(self) -> float:
+        try:
+            return bool(self._get_val("model","exclude_bottleneck"))
+        except:
+            return None
+
 if __name__ == "__main__":
     print(load_config("config.yaml")["training"]["batch_size"])

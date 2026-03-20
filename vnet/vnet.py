@@ -4,40 +4,40 @@ from vnet.vnet_parts import *
 
 class VNet2D(nn.Module):
     
-    def __init__(self):
+    def __init__(self, kernel_size=5):
         super(VNet2D,self).__init__()
 
-        self.input_conv = InputConvolution()
+        self.input_conv = InputConvolution(kernel_size=kernel_size)
         
-        self.d_rs_1 = ResidualConvolution(1,16)
+        self.d_rs_1 = ResidualConvolution(1,16,kernel_size=kernel_size)
         self.down_1 = DownConvolution(16, 32)
-        self.d_rs_2 = ResidualConvolution(2, 32)
+        self.d_rs_2 = ResidualConvolution(2, 32,kernel_size=kernel_size)
         self.down_2 = DownConvolution(32, 64)
-        self.d_rs_3 = ResidualConvolution(3, 64)
+        self.d_rs_3 = ResidualConvolution(3, 64,kernel_size=kernel_size)
         self.down_3 = DownConvolution(64, 128)
-        self.d_rs_4 = ResidualConvolution(3, 128)
+        self.d_rs_4 = ResidualConvolution(3, 128,kernel_size=kernel_size)
         self.down_4 = DownConvolution(128, 256)
 
-        self.bottleneck = ResidualConvolution(3, 256)
+        self.bottleneck = ResidualConvolution(3, 256,kernel_size=kernel_size)
 
         self.up_1 = UpConvolution(256, 256)
-        self.ff_1 = FeatureFusionBlock(384,256)
-        self.u_rs_1 = StackedConvolution(3, 256)
+        self.ff_1 = FeatureFusionBlock(384,256,kernel_size=kernel_size)
+        self.u_rs_1 = StackedConvolution(3, 256,kernel_size=kernel_size)
         self.p_relu_1 = nn.PReLU(256)
 
         self.up_2 = UpConvolution(256, 128)
-        self.ff_2 = FeatureFusionBlock(192,128)
-        self.u_rs_2 = StackedConvolution(3, 128)
+        self.ff_2 = FeatureFusionBlock(192,128,kernel_size=kernel_size)
+        self.u_rs_2 = StackedConvolution(3, 128,kernel_size=kernel_size)
         self.p_relu_2 = nn.PReLU(128)
 
         self.up_3 = UpConvolution(128, 64)
-        self.ff_3 = FeatureFusionBlock(96,64)
-        self.u_rs_3 = StackedConvolution(2, 64)
+        self.ff_3 = FeatureFusionBlock(96,64,kernel_size=kernel_size)
+        self.u_rs_3 = StackedConvolution(2, 64,kernel_size=kernel_size)
         self.p_relu_3 = nn.PReLU(64)
 
         self.up_4 = UpConvolution(64, 32)
-        self.ff_4 = FeatureFusionBlock(48,32)
-        self.u_rs_4 = StackedConvolution(1, 32)
+        self.ff_4 = FeatureFusionBlock(48,32,kernel_size=kernel_size)
+        self.u_rs_4 = StackedConvolution(1, 32,kernel_size=kernel_size)
         self.p_relu_4 = nn.PReLU(32)
 
 
