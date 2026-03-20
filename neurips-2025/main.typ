@@ -6,7 +6,6 @@
     department: "Student",
     institution: "Hasso-Plattner-Institut",
     location: "Potsdam",
-    country: "Germany"
   )
 )
 
@@ -21,8 +20,14 @@
    equal: true),
 )
 
+#let line = box(
+  width: 100%,
+  height: 0.2pt,
+  fill: black
+)
+
 #show: neurips2025.with(
-  title: [Skin Lesion Segmentation using Deep Neural Networks: A Comparison of U-Net, Attention U-Net and V-Net on the ISIC 2018 Dataset],
+  title: [Skin Lesion Segmentation using Deep Neural Networks: A Comparison of Different Approaches on the ISIC 2018 Dataset],
   authors: (authors, affls),
   keywords: ("Machine Learning", "NeurIPS"),
   abstract: [
@@ -38,9 +43,12 @@
 = Introduction
 // What is your project about? What are its goals?
 
+Medical image segmentation plays an important role in the analysis of medical images, often used for isolating regions of interest from their background @medimagereview. This assists trained personal in in identifying lesions, their location, size and potentially relationship with surrounding tissues. Compared to natural images, skin lesion images come with unique challenges like low contrast with surrounding skin, variations in lesion appearance, presence of artifacts like hair and illumination changes. \ \ 
+In this project, we compare the performance of multiple deep learning architectures for skin lesion segmentation. Specifically, we compare three models: U-Net, V-Net and DeepLabV3. While U-Net and V-Net are based on the classic encoder-decoder architecture, DeepLabV3 makes use of atrous spatial pyramid pooling (ASPP). \ \  
 
 = Related Work
 // Have others approached what you did? Which works are related to yours?
+
 
 = Dataset
 // What are characteristics of your dataset, e.g. size, input/target output, dimensions, conducted

@@ -1,7 +1,8 @@
 import torch
 from torch import optim, nn
 from torch.utils.data import DataLoader, random_split
-from torchvision import transforms
+from torchvision import transforms, models
+from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 import torchvision.transforms.functional as F
 from tqdm import tqdm
 from pathlib import Path
@@ -109,6 +110,13 @@ def train() -> None:
             case _:
                 print("No correct model name provided. Using UNet as fallback.")
                 model = UNet(in_channels=3, out_channels=1).to(device)
+        # model = UNet(in_channels=3, out_channels=1).to(device)
+        # model = AttentionUNet(in_channels=3, out_channels=1).to(device)
+        # model = ResUNet(in_channels=3, out_channels=1).to(device)
+        # model = VNet2D().to(device)
+        model = models.segmentation.deeplabv3_resnet50(weights="DEFAULT")
+        model.classifier = DeepLabHead(2048, 1)
+        model.to(device)
 
 
         optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
@@ -128,9 +136,8 @@ def train() -> None:
 
             for img, mask in tqdm(train_dataloader, desc=f"Epoch {epoch + 1}/{EPOCHS}"):
                 img, mask = img.to(device), mask.to(device)
-
                 optimizer.zero_grad()
-                y_pred = model(img)
+                y_pred = model(img)['out']
                 loss = criterion(y_pred, mask)
                 loss.backward()
                 old_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=MAX_NORM)      
@@ -150,7 +157,7 @@ def train() -> None:
             with torch.no_grad():
                 for img, mask in val_dataloader:
                     img, mask = img.to(device), mask.to(device)
-                    y_pred = model(img)
+                    y_pred = model(img)['out']
                     val_running_loss += criterion(y_pred, mask).item()
 
             val_loss = val_running_loss / len(val_dataloader)

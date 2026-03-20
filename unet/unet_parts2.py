@@ -5,14 +5,20 @@ from torch.nn.modules import LeakyReLU
 
 class DoubleConv(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size=3):
+    def __init__(self, in_channels, out_channels, kernel_size=3, activation='relu'):
         super().__init__()
-        padding = int((kernel_size-1)/2)
+        self.kernel_size = kernel_size
+        self.padding = int((kernel_size - 1) / 2)
+        if activation == 'relu':
+            self.activation = nn.ReLU(inplace=True)
+        else:
+            self.activation = nn.LeakyReLU(inplace=True)
+            
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding),
+            nn.Conv2d(in_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding),
             nn.BatchNorm2d(out_channels, affine=False),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, padding=padding),
+            self.activation,
+            nn.Conv2d(out_channels, out_channels, kernel_size=self.kernel_size, padding=self.padding),
             nn.BatchNorm2d(out_channels, affine=False),
             self.activation
         )
@@ -22,9 +28,9 @@ class DoubleConv(nn.Module):
 
 class DownSample(nn.Module):
 
-    def __init__(self, in_channels, out_channels, conv_kernel_size=3):
+    def __init__(self, in_channels, out_channels, kernel_size=3, activation='relu'):
         super().__init__()
-        self.conv = DoubleConv(in_channels, out_channels, kernel_size=conv_kernel_size)
+        self.conv = DoubleConv(in_channels, out_channels, kernel_size=kernel_size, activation=activation)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
     def forward(self, x):
@@ -34,10 +40,10 @@ class DownSample(nn.Module):
         return d, p
 
 class UpSample(nn.Module):
-    def __init__(self, in_channels, out_channels, conv_kernel_size=3):
+    def __init__(self, in_channels, out_channels, kernel_size=3, activation='relu'):
         super().__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = DoubleConv(in_channels, out_channels, kernel_size=conv_kernel_size)
+        self.conv = DoubleConv(in_channels, out_channels, kernel_size=kernel_size, activation=activation)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)

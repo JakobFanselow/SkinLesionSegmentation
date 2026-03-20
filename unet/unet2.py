@@ -4,42 +4,56 @@ import torch.nn as nn
 from unet.unet_parts import DoubleConv, DownSample, UpSample, AttentionGate, ResidualBlock, RecConvBlock, R2ConvBlock
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, out_channels, exclude_bottleneck=False, base_channels=64, conv_kernel_size=3):
+    def __init__(self, in_channels=3, out_channels=1, init_filters=64, depth=4, activation='relu', bottle_neck=True, kernel_size=3):
         super().__init__()
-        self.use_bottleneck = not(exclude_bottleneck)
-
-        self.dc_1 = DownSample(in_channels, base_channels, conv_kernel_size=conv_kernel_size)
-        self.dc_2 = DownSample(base_channels, base_channels*2, conv_kernel_size=conv_kernel_size)
-        self.dc_3 = DownSample(base_channels*2, base_channels*4, conv_kernel_size=conv_kernel_size)
-        self.dc_4 = DownSample(base_channels*4, base_channels*8, conv_kernel_size=conv_kernel_size)
-
+        
+        self.init_filters = init_filters
+        self.depth = depth
+        self.activation = activation
+        self.use_bottleneck = bottle_neck
+        self.kernel_size = kernel_size
+        
+        fn_args = {
+            "kernel_size": self.kernel_size, 
+            "activation": self.activation
+        }
+        
+        self.encoder = nn.ModuleList()
+        in_ch = in_channels
+        out_ch = init_filters
+        for _ in range(depth):
+            self.encoder.append(DownSample(in_ch, out_ch, **fn_args))
+            in_ch = out_ch
+            out_ch *= 2
         if self.use_bottleneck:
-            self.bottle_neck = DoubleConv(base_channels*8, base_channels*16, kernel_size= conv_kernel_size)
-            self.uc_1 = UpSample(base_channels*16, base_channels*8, conv_kernel_size=conv_kernel_size)
-
-        self.uc_2 = UpSample(base_channels*8, base_channels*4, conv_kernel_size=conv_kernel_size)
-        self.uc_3 = UpSample(base_channels*4, base_channels*2, conv_kernel_size=conv_kernel_size)
-        self.uc_4 = UpSample(base_channels*2, base_channels, conv_kernel_size=conv_kernel_size)
-
-        self.out = nn.Conv2d(in_channels=base_channels, out_channels=out_channels, kernel_size=1)
+            self.bottleneck = DoubleConv(in_ch, in_ch * 2, **fn_args)
+            decode_ch = in_ch * 2
+        else:
+            self.bottleneck = nn.Identity()
+            decode_ch = in_ch
+        
+        self.decoder = nn.ModuleList()
+        in_ch = decode_ch
+        for level in reversed(range(depth)):
+            skip_ch = init_filters * (2 ** level)
+            self.decoder.append(UpSample(in_ch, skip_ch, **fn_args))
+            in_ch = skip_ch
+        
+        self.out = nn.Conv2d(in_channels=init_filters, out_channels=out_channels, kernel_size=1)
 
     def forward(self, x):
-        d1, p1 = self.dc_1(x)
-        d2, p2 = self.dc_2(p1)
-        d3, p3 = self.dc_3(p2)
-        d4, p4 = self.dc_4(p3)
-
-        if self.use_bottleneck:
-            bn = self.bottle_neck(p4)
-            u1 = self.uc_1(bn, d4)
-            u2 = self.uc_2(u1, d3)
-        else:
-            u2 = self.uc_2(d4,d3)
+        skips = []
+        p = x
+        for down in self.encoder:
+            d, p = down(p)
+            skips.append(d)
         
-        u3 = self.uc_3(u2, d2)
-        u4 = self.uc_4(u3, d1)
-
-        return self.out(u4)
+        x = self.bottleneck(p)
+        
+        for up, skip in zip(self.decoder, reversed(skips)):
+            x = up(x, skip)
+        
+        return self.out(x)
 
 class AttentionUNet(nn.Module):
     def __init__(self, in_channels, out_channels):
