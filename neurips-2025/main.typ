@@ -226,6 +226,7 @@ This restrictive max_norm resulted in a clipping of almost all of VNets gradient
 The qualitative "uncertainty" may be a direct consequence of this restriction. Because of the low max_norm required to keep the training process stable, VNet was restricted in its ability to perform high-magnitude weight updates.
 Noteably it was also unable to take advantage of our learning rate scheduler as nearly all gradients were clipped to the same size.
 This likely prevented VNet from reaching the same level of confidence in pixel-wise classification (low BCE loss) as UNet.
+However it has to be noted that because the best UNet run had a lower max_lr than lr our training program used $1.5*"lr"$ as a fallback max_lr, limiting Unet's advantage.
 
 == 
 Despite UNets superior BCE performance, the parity of dice coefficients suggests that both architectures are equally capable of capturing the primary structural morphology of the lesion.
