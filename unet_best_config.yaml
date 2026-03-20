@@ -1,0 +1,26 @@
+model: "UNET"
+
+seed: 42
+batch_size: 8
+train_percentage: 0.7
+validation_percentage: 0.15
+test_percentage: 0.15
+learning_rate: 0.0005133703180576244
+epochs: 25
+weight_decay: 0.0005406893163354807
+max_learning_rate: 0.00002205812471837138
+drop_last: true
+max_norm: 2.0
+
+dice_weight: 0.5
+
+image_dir: ""
+mask_dir: ""
+
+resolution: 512
+
+workers: 8
+
+# unet only
+exclude_bottleneck: false
+kernel_size: 7
