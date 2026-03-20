@@ -105,7 +105,7 @@ In contrast to U-Net and V-Net, DeepLabV3 does not rely on symmetric skip connec
 // Which evaluation strategy and metrics have you chosen? How does your model perform?
 == Strategy and Metric
 We evaluated two state-of-the-art segmentation models.
-The models were trained using the hybrid loss function Dice-BCE Loss which combines spacial overlap benefits of the Dice coefficient with strong pixel-wise classification of Binary Cross-Entropy
+The models were trained using the hybrid loss function Dice-BCE Loss which combines spatial overlap benefits of the Dice coefficient with strong pixel-wise classification of Binary Cross-Entropy
 To ensure the architectural and model hyperparameter comparison remained the main focus, we applied an equal weighting to both components: 
 $ L_"total" = 0.5 \cdot L_"Dice" + 0.5 \cdot L_"BCE" $
 
@@ -125,8 +125,8 @@ Using the best parameters found in our sweeps we were able to achieve the follow
     [*Model*], [*Train loss*], [*Validation Loss*], [*Test Loss*], [*Dice coefficient*],
     table.hline(stroke: .5pt),
     
-    [UNet], [0.11005], [0.14995], [0.15901], [0.85149],
-    [VNet], [0.12168], [0.15772], [0.16998], [0.85109],
+    [UNet], [*0.11005*], [*0.14995*], [*0.15901*], [*0.85149*],
+    [VNet], [0.12168], [0.15772], [0.16998], [*0.85109*],
     
     table.hline(),
   ),
@@ -148,3 +148,27 @@ The visual evidence supports our quantitative findings. While both are able to s
 
 = Discussion
 // Is your model performing well? How could your model be improved? Which challenges were involved? What is future work?
+==
+A notable divergence in training was observed in stability and gradient size. While UNet remained stable under standard conditions, VNet was only able to perform well with very restrictive gradient clipping. Comparing the max_norm of the two best runs UNet had relatively stable training using a value of 2.0 while VNet's loss curves exhibit large spikes even though its max_norm was only 0.25
+
+#image("../training_curves/TrainLoss.png")
+#image("../training_curves/ValLoss.png")
+
+This restrictive max_norm resulted in a clipping of almost all of VNets gradients.
+
+#image("../training_curves/GradientClipping.png")
+ 
+The qualitative "uncertainty" may be a direct consequence of this restriction. Because of the low max_norm required to keep the training process stable, VNet was restricted in its ability to perform high-magnitude weight updates.
+Noteably it was also unable to take advantage of our learning rate scheduler as nearly all gradients were clipped to the same size.
+This likely prevented VNet from reaching the same level of confidence in pixel-wise classification (low BCE loss) as UNet.
+
+== 
+Despite UNets superior BCE performance, the parity of dice coefficients suggests that both architectures are equally capable of capturing the primary structural morphology of the lesion.
+
+== Future work
+=== Architectural Stabilization
+The instability in VNet's training characterized by large loss spikes and the neccecity for aggressive gradient clipping, remains a primary bottleneck. Future work should investigate the following techniques:
++ initialization besides random initialization such as He initialization
++ residual scaling
+=== Loss Function Optimization
+To address VNets poor BCE performance we propose implementing a scheduled loss weighting strategy that initially prioritizes Dice and later on BCE loss.
